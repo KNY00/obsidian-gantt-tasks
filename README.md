@@ -8,7 +8,7 @@ This custom Dataview script takes your standard markdown task lists and transfor
 
 ## 📖 Documentation
 
-**[📚 Read the full documentation here!](https://kny00.github.io/Obsidian-Gantt-Tasks/)**
+**[📚 Read the full documentation here!](https://kny00.github.io/obsidian-gantt-tasks/)**
 *(Note: Update this link to point to your hosted Vitepress documentation site or GitHub Pages URL).*
 
 ## ✨ Key Features
