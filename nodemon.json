@@ -1,0 +1,6 @@
+{
+    "watch": ["dist"],
+    "ext": "*",
+    "exec": "node tools/node-copy.js",
+    "delay": 500
+}

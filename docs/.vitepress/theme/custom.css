@@ -1,0 +1,13 @@
+/* Hide light-mode images when dark mode is active */
+.dark [src$="#light-mode-only"] {
+    display: none;
+}
+
+/* Hide dark-mode images when light mode is active */
+[src$="#dark-mode-only"] {
+    display: none;
+}
+
+.dark [src$="#dark-mode-only"] {
+    display: block;
+}
