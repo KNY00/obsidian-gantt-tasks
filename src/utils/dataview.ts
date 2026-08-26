@@ -1,9 +1,6 @@
 export function getDataviewAPI() {
     return dv;
 }
-interface StoreState {
-    readonly dayOffset: number;
-}
 
 const store: { dayOffset: number } = {
     dayOffset: 0,

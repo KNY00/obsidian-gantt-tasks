@@ -1,11 +1,12 @@
 import {
+    chooseTaskDate,
     generateTimestamp,
     toDateObject,
     toDateString,
     toIntervalObject,
     toTimeObject,
 } from './date-conversion';
-import { TaskItem } from '@/types';
+import type { TaskItem } from '@/types';
 import { dateFromTaskPath, extractTokenAfterPrefix } from './string-parsing';
 
 export function buildTask(
@@ -52,22 +53,6 @@ export function buildTask(
 
     name = name.replace(/-\s*\[([ xX])\]\s*/, '').trim();
 
-    const chosenDate = chooseTaskDate(completionDate, dueDate, scheduledDate);
-    const dateObject = toDateObject(chosenDate);
-    const startTimeObject = toTimeObject(startTime);
-    const endTimeObject = toTimeObject(endTime);
-
-    let start = null;
-    let end = null;
-
-    if (dateObject !== null && startTimeObject !== null) {
-        start = generateTimestamp({ ...dateObject, ...startTimeObject });
-    }
-
-    if (dateObject !== null && endTimeObject !== null) {
-        end = generateTimestamp({ ...dateObject, ...endTimeObject });
-    }
-
     let fileNameDate: string | null = null;
 
     if (fallBackToFileDate) {
@@ -88,36 +73,7 @@ export function buildTask(
             dueDate !== null ||
             completionDate !== null ||
             fileNameDate !== null,
-        timestamps: {
-            start,
-            end,
-        },
     };
-}
-
-/**
- * Selects the most relevant task date based on a strict priority hierarchy.
- * Priority order: Completion Date (highest) > Due Date > Scheduled Date (lowest).
- *
- * @template H - A string type representing a date (extends DateString).
- * @param scheduledDate - Optional scheduled date of the task.
- * @param dueDate - Optional due date of the task.
- * @param completionDate - Optional completion date of the task.
- *
- * @returns The first available date matching the highest priority, or undefined if none are provided.
- */
-export function chooseTaskDate<H extends string | null>(
-    completionDate?: H,
-    dueDate?: H,
-    scheduledDate?: H,
-    fallbackDate?: H
-): H | null {
-    // Order from highest priority to lowest priority
-    return (
-        [completionDate, dueDate, scheduledDate, fallbackDate].find((date): date is H =>
-            Boolean(date)
-        ) ?? null
-    );
 }
 
 export function generateGanttMarkdown(tasks: TaskItem[], title: string = '📅 Plan'): string {
@@ -142,19 +98,15 @@ export function generateGanttMarkdown(tasks: TaskItem[], title: string = '📅 P
         if (chosenDate == null) return;
 
         // Determine status tags for mermaid (e.g., :done, :active, etc.)
-        let statusTag;
-
+        let statusTag = ':active, ';
         if (task.status === 'done') statusTag = ':done, ';
-        else if (task.status === 'active') statusTag = ':active, ';
-        else if (task.status === 'crit') statusTag = ':crit, ';
-        else statusTag = ': ';
 
         if (task.startTime == task.endTime) {
-            statusTag = ': milestone, ';
+            statusTag = ':milestone, ';
         }
 
         const start = task.startTime ? `${chosenDate} ${task.startTime}` : `${chosenDate} 08:00`;
-        const end = task.endTime ? `${chosenDate} ${task.endTime}` : `${chosenDate} 08:15`;
+        const end = task.endTime ? `${chosenDate} ${task.endTime}` : `${chosenDate} 08:00`;
 
         // Example rows: Task Name :done, t1, 2026-08-23 08:30, 2026-08-23 09:00
         ganttRows.push(

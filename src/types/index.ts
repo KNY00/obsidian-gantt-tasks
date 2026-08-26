@@ -27,9 +27,4 @@ export interface TaskItem {
      * in the timeline/UI view.
      */
     isDisplayable: boolean;
-    /** timestamps used to sort tasks */
-    timestamps: {
-        start: number | null;
-        end: number | null;
-    };
 }

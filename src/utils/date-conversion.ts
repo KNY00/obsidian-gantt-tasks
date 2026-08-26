@@ -1,4 +1,4 @@
-import type { DateInput, DateTimeObject } from '@/types';
+import type { DateInput, DateTimeObject, TaskItem } from '@/types';
 import { getDayOffset } from './dataview';
 
 /**
@@ -47,10 +47,6 @@ export const toDateObject = (str: string | null) => {
     const [year, month, day] = str.split('-');
 
     if (year && month && day) {
-        const check = [year, month, day].every((el) => typeof el === 'string');
-
-        if (!check) return null;
-
         const [y, m, d] = [year, month, day].map((z) => parseInt(z, 10));
 
         const check2 = [y, m, d].every((el) => Number.isFinite(el));
@@ -87,10 +83,6 @@ export const toTimeObject = (str: string | null) => {
     const [hours, minutes] = str.split(':');
 
     if (hours && minutes) {
-        const check = [hours, minutes].every((el) => typeof el === 'string');
-
-        if (!check) return null;
-
         const [h, m] = [hours, minutes].map((z) => parseInt(z, 10));
 
         const check2 = [h, m].every((el) => Number.isFinite(el));
@@ -192,10 +184,6 @@ export const toTimeString = (str: string | null) => {
     const [hours, minutes] = str.split(':');
 
     if (hours && minutes) {
-        const check = [hours, minutes].every((el) => typeof el === 'string');
-
-        if (!check) return null;
-
         const [h, m] = [hours, minutes].map((z) => parseInt(z, 10));
 
         const check2 = [h, m].every((el) => Number.isFinite(el));
@@ -227,10 +215,6 @@ export const toDateString = (str: string | null) => {
     const [year, month, day] = str.split('-');
 
     if (year && month && day) {
-        const check = [year, month, day].every((el) => typeof el === 'string');
-
-        if (!check) return null;
-
         const [y, m, d] = [year, month, day].map((z) => parseInt(z, 10));
 
         const check2 = [y, m, d].every((el) => Number.isFinite(el));
@@ -266,10 +250,6 @@ export const toIntervalObject = (str: string | null) => {
     const [startingTime, endingTime] = str.split('-');
 
     if (startingTime && endingTime) {
-        const check = [startingTime, endingTime].every((el) => typeof el === 'string');
-
-        if (!check) return nullReturn;
-
         const check2 = [startingTime, endingTime].every((z) => toTimeString(z) !== null);
 
         if (!check2) return nullReturn;
@@ -344,10 +324,8 @@ export function getStartDateWithOffset(baseDateStr: string): string | null {
     // Create UTC date object to prevent local timezone DST / offset issues during day addition
     const dateObj = new Date(Date.UTC(year, jsMonth, day));
 
-    // Test that the base Date object is rock solid and valid
-    if (isNaN(dateObj.getTime())) {
-        return null;
-    }
+    // NOTE: Checking isNaN(dateObj.getTime()) is omitted here because
+    // toDateObject() already guarantees a valid date via isValidDate().
 
     // Add dayCount safely using setUTCDate
     dateObj.setUTCDate(dateObj.getUTCDate() + getDayOffset());
@@ -362,17 +340,6 @@ export function getStartDateWithOffset(baseDateStr: string): string | null {
     const resMonth = dateObj.getUTCMonth();
     const resDay = dateObj.getUTCDate();
 
-    // Double check via reverse validation check if helper exists, or validate standard date bounds
-    const reconstructed = new Date(Date.UTC(resYear, resMonth, resDay));
-
-    if (
-        reconstructed.getUTCFullYear() !== resYear ||
-        reconstructed.getUTCMonth() !== resMonth ||
-        reconstructed.getUTCDate() !== resDay
-    ) {
-        return null;
-    }
-
     // Format back to 'YYYY-MM-DD' using formatDate helper
     return formatDate(resYear, resMonth + 1, resDay);
 }
@@ -385,4 +352,58 @@ export function getStartDateWithOffset(baseDateStr: string): string | null {
 export function getCurrentDateString(): string {
     const now = new Date();
     return formatDate(now.getFullYear(), now.getMonth() + 1, now.getDate());
+}
+
+/**
+ * Selects the most relevant task date based on a strict priority hierarchy.
+ * Priority order: Completion Date (highest) > Due Date > Scheduled Date (lowest).
+ *
+ * @template H - A string type representing a date (extends DateString).
+ * @param scheduledDate - Optional scheduled date of the task.
+ * @param dueDate - Optional due date of the task.
+ * @param completionDate - Optional completion date of the task.
+ *
+ * @returns The first available date matching the highest priority, or undefined if none are provided.
+ */
+export function chooseTaskDate<H extends string | null>(
+    completionDate?: H,
+    dueDate?: H,
+    scheduledDate?: H,
+    fallbackDate?: H
+): H | null {
+    // Order from highest priority to lowest priority
+    return (
+        [completionDate, dueDate, scheduledDate, fallbackDate].find((date): date is H =>
+            Boolean(date)
+        ) ?? null
+    );
+}
+
+export function getTaskTimestamps({
+    completionDate,
+    dueDate,
+    scheduledDate,
+    fileNameDate,
+    startTime,
+    endTime,
+}: TaskItem) {
+    const chosenDate = chooseTaskDate(completionDate, dueDate, scheduledDate, fileNameDate);
+    const dateObject = toDateObject(chosenDate);
+    const startTimeObject = toTimeObject(startTime);
+    const endTimeObject = toTimeObject(endTime);
+
+    let start = NaN;
+    let end = NaN;
+
+    const defaultTime = { hour: 0, minute: 0 };
+
+    if (dateObject !== null) {
+        start = generateTimestamp({ ...dateObject, ...(startTimeObject ?? defaultTime) });
+        end = generateTimestamp({ ...dateObject, ...(endTimeObject ?? defaultTime) });
+    }
+
+    return {
+        start,
+        end,
+    };
 }

@@ -1,6 +1,5 @@
 import type { DateInput, TaskItem } from '@/types';
-import { isDateEqual } from './date-conversion';
-import { chooseTaskDate } from './ui';
+import { chooseTaskDate, getTaskTimestamps, isDateEqual } from './date-conversion';
 
 export const hasValidInterval = (task: TaskItem) => {
     return task.startTime != null && task.endTime != null;
@@ -14,13 +13,28 @@ const filterByDate = (task: TaskItem, filterDate: DateInput | string | null = nu
         task.fileNameDate
     );
 
-    // If no date filter is applied, any task with a date is valid
+    // if no date filter is applied, any task with a date is valid
     if (filterDate === null) {
         return chosenDate !== null;
     }
 
-    // If a filter is applied, the task must have a chosen date and it must match
+    // if a filter is applied, the task must have a chosen date and it must match
     return chosenDate !== null && isDateEqual(chosenDate, filterDate);
+};
+
+/**
+ * Sorts an array of task items chronologically based on their start timestamps.
+ * Modifies the original array in place.
+ *
+ * @param tasks - Array of TaskItem objects to be sorted
+ */
+const sortTasks = (tasks: TaskItem[]) => {
+    tasks.sort((a, b) => {
+        const timeA = getTaskTimestamps(a);
+        const timeB = getTaskTimestamps(b);
+
+        return timeA.start - timeB.start;
+    });
 };
 
 export function getFilteredTasks(
@@ -36,7 +50,11 @@ export function getFilteredTasks(
             (!excludeTasksWithoutInterval || hasValidInterval(task))
     );
 
-    validTasks.sort((a, b) => (a.timestamps.start ?? 0) - (b.timestamps.start ?? 0));
+    // TODO: move this
+    sortTasks(validTasks);
 
     return validTasks;
 }
+
+/* v8 ignore next */
+export const _testing = process.env.NODE_ENV === 'test' ? { filterByDate, sortTasks } : undefined;
