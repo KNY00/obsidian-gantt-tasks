@@ -28,7 +28,7 @@ const filterByDate = (task: TaskItem, filterDate: DateInput | string | null = nu
  *
  * @param tasks - Array of TaskItem objects to be sorted
  */
-const sortTasks = (tasks: TaskItem[]) => {
+export const sortTasks = (tasks: TaskItem[]) => {
     tasks.sort((a, b) => {
         const timeA = getTaskTimestamps(a);
         const timeB = getTaskTimestamps(b);
@@ -50,11 +50,8 @@ export function getFilteredTasks(
             (!excludeTasksWithoutInterval || hasValidInterval(task))
     );
 
-    // TODO: move this
-    sortTasks(validTasks);
-
     return validTasks;
 }
 
 /* v8 ignore next */
-export const _testing = process.env.NODE_ENV === 'test' ? { filterByDate, sortTasks } : undefined;
+export const _testing = process.env.NODE_ENV === 'test' ? { filterByDate } : undefined;

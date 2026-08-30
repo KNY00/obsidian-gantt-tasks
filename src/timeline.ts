@@ -1,7 +1,7 @@
 import { type TFile } from 'obsidian';
 import { TaskItem } from './types';
 import { decrementDayOffset, getDataviewAPI, incrementDayOffset } from './utils/dataview';
-import { getFilteredTasks } from './utils/filter';
+import { getFilteredTasks, sortTasks } from './utils/filter';
 import { generateGanttMarkdown } from './utils/ui';
 import { extractTasks } from './utils/tasks';
 import {
@@ -109,6 +109,8 @@ slowly().then(async (globalTasks) => {
             filterDate,
             excludeTasksWithoutInterval
         );
+
+        sortTasks(filteredTasks);
 
         const ul = dv.el('ul', '', { cls: 'task-timeline-list', container });
         ul.style.display = 'none';
