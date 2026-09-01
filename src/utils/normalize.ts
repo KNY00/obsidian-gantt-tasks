@@ -7,9 +7,11 @@ import {
 } from './date-conversion';
 import { dateFromTaskPath } from './string-parsing';
 
+/* v8 ignore start */
 export function getInput() {
     return input;
 }
+/* v8 ignore stop */
 
 /**
  * Normalizes the fallbackToFileDate option from user input.

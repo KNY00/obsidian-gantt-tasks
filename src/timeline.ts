@@ -1,55 +1,11 @@
-import { type TFile } from 'obsidian';
-import { TaskItem } from './types';
 import { decrementDayOffset, getDataviewAPI, incrementDayOffset } from './utils/dataview';
 import { getFilteredTasks, sortTasks } from './utils/filter';
 import { generateGanttMarkdown } from './utils/ui';
-import { extractTasks } from './utils/tasks';
-import {
-    getExcludeTasksWithoutInterval,
-    getTargetLocations,
-    getStartDate,
-} from './utils/normalize';
-import { isTaskMatchingLocation } from './utils/path';
+import { getExcludeTasksWithoutInterval, getStartDate } from './utils/normalize';
 import { getStartDateWithOffset } from './utils/date-conversion';
+import { fetchAllTasks } from './utils/tasks';
 
-const slowly = async () => {
-    const dv = getDataviewAPI();
-    // Retrieve all pages in the vault
-    const pages = dv.pages();
-
-    const locations = getTargetLocations();
-
-    const globalTasks: TaskItem[] = [];
-
-    // Iterate through each page
-    for (const page of pages) {
-        // Ignore files that contain the variable 'dataview' in their frontmatter
-        if (page.dataview !== undefined) {
-            continue;
-        }
-
-        if (!isTaskMatchingLocation(page.file, locations)) continue;
-
-        // Retrieve the actual file object
-        const tFile = app.vault.getAbstractFileByPath(page.file.path);
-
-        if (!tFile) continue;
-
-        // Read the raw text content of the file using .then() instead of await
-        const content = await app.vault.read(tFile as TFile);
-        const lines = content.split('\n');
-
-        // Generate the output blocks using the external function
-        // Passing the page path so we can generate internal links to the exact line
-        const tasks = extractTasks(page.file.path, lines);
-
-        globalTasks.push(...tasks);
-    }
-
-    return globalTasks;
-};
-
-slowly().then(async (globalTasks) => {
+fetchAllTasks().then(async (globalTasks) => {
     const dv = getDataviewAPI();
 
     const container = dv.el('div', '', { cls: 'task-timeline-container' });

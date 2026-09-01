@@ -1,5 +1,3 @@
-// * Used for timeline
-
 /**
  * Parses a comma-separated string of tags into an array of individual tag strings.
  * Trims whitespace from each extracted tag.
@@ -11,7 +9,10 @@ const tagStringToArray = (tagStr: string): string[] => {
     const match = tagStr.match(/,/g);
 
     if (match !== null && match.length > 0) {
-        return tagStr.split(',').map((tag) => tag.trim());
+        return tagStr
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter((tag) => tag.length !== 0);
     }
 
     return [tagStr];
@@ -54,3 +55,7 @@ export const removeTags = (line: string, tagStr: string): string => {
 
     return modifiedLine;
 };
+
+/* v8 ignore start */
+export const _testing = process.env.NODE_ENV === 'test' ? { tagStringToArray } : undefined;
+/* v8 ignore end */

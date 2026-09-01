@@ -1,6 +1,8 @@
+/* v8 ignore start */
 export function getDataviewAPI() {
     return dv;
 }
+/* v8 ignore end */
 
 const store: { dayOffset: number } = {
     dayOffset: 0,

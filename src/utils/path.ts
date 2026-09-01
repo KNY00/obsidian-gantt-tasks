@@ -1,5 +1,7 @@
 import { getCurrentMdFilePath } from './normalize';
 
+type FileWithPath = { path?: string; file?: { path: string } };
+
 /**
  * Normalizes a file path by standardizing slashes, trimming whitespace,
  * and removing duplicate or leading/trailing slashes.
@@ -49,8 +51,6 @@ export function arePathsEqual(
     return normalizedA === normalizedB;
 }
 
-type FileWithPath = { path?: string; file?: { path: string } };
-
 /**
  * Checks if a given file matches a location criteria (supports '*', '@currentFile', comma-separated paths, or folder hierarchies).
  *
@@ -59,7 +59,7 @@ type FileWithPath = { path?: string; file?: { path: string } };
  * @param [location='Journal'] - The target location, comma-separated paths, '@currentFile', or '*'.
  * @returns True if the file matches the location criteria, false otherwise.
  */
-export function isTaskMatchingLocation<T extends FileWithPath>(
+export function isFileMatchingLocation<T extends FileWithPath>(
     file: T,
     location: string = 'Journal'
 ): boolean {
@@ -75,12 +75,16 @@ export function isTaskMatchingLocation<T extends FileWithPath>(
         return arePathsEqual(filePath, currentPath);
     }
 
-    const normalizedPath = filePath.replace(/\\/g, '/');
+    const normalizedPath = normalizePath(filePath);
 
-    const folders = location.split(',').map((f) => f.trim());
+    const folders = location.split(',').map((f) => normalizePath(f.trim()));
 
     return folders.some(
         (folder) =>
             normalizedPath.startsWith(folder + '/') || normalizedPath.includes(`/${folder}/`)
     );
 }
+/* v8 ignore start */
+export const _testing =
+    process.env.NODE_ENV === 'test' ? { normalizePath, arePathsEqual } : undefined;
+/* v8 ignore end */

@@ -1,4 +1,5 @@
 import { toDateString } from './date-conversion';
+import { normalizePath } from '@/utils/path';
 
 /**
  * Extracts the first whitespace-delimited word or value immediately following a given prefix in a string.
@@ -42,8 +43,8 @@ export function extractTokenAfterPrefix(sourceString: string, prefix: string) {
  * @param filePath - The full path of the file (e.g., "journal/2023-10-25.md")
  * @returns The file title/name without extension (e.g., "2023-10-25")
  */
-export function getFileTitle(filePath: string): string | null {
-    const normalizedPath = filePath.replace(/\\/g, '/');
+function getFileTitle(filePath: string): string | null {
+    const normalizedPath = normalizePath(filePath);
 
     // Get the last segment (file name with extension)
     const fileNameWithExt = normalizedPath.split('/').pop() || '';
@@ -69,3 +70,7 @@ export function dateFromTaskPath(filePath: string): string | null {
     const fileName = getFileTitle(filePath);
     return toDateString(fileName);
 }
+
+/* v8 ignore start */
+export const _testing = process.env.NODE_ENV === 'test' ? { getFileTitle } : undefined;
+/* v8 ignore end */
