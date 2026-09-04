@@ -5,14 +5,18 @@ import { hasAllTags, removeTags } from './tags';
 import {
     getCompletionPrefix,
     getDuePrefix,
+    getExcludeTasksWithoutInterval,
     getFallbackToFileDate,
     getIncludeTags,
     getIntervalPrefix,
     getScheduledPrefix,
+    getStartDate,
     getTargetLocations,
 } from './normalize';
 import { isFileMatchingLocation } from './path';
 import { getDataviewAPI } from './dataview';
+import { getFilteredTasks, sortTasks } from './filter';
+import { getStartDateWithOffset } from './date-conversion';
 
 /**
  * Extracts and parses task items from an array of markdown lines.
@@ -99,3 +103,29 @@ export const fetchAllTasks = async () => {
 
     return globalTasks;
 };
+
+interface ResolvedTimelineData {
+    filterDate: string | null;
+    tasks: TaskItem[];
+}
+
+/**
+ * Computes the date offset, filters and sorts tasks for the timeline view,W
+ * and returns the active filter date along with the processed tasks.
+ *
+ * @param globalTasks - All parsed tasks from the vault.
+ * @returns The resolved filter date and the filtered/sorted task list.
+ */
+export function resolveTimelineTasks(globalTasks: TaskItem[]): ResolvedTimelineData {
+    const filterDate = getStartDateWithOffset(getStartDate());
+    const excludeTasksWithoutInterval = getExcludeTasksWithoutInterval();
+
+    const filteredTasks = getFilteredTasks(globalTasks, filterDate, excludeTasksWithoutInterval);
+
+    sortTasks(filteredTasks);
+
+    return {
+        filterDate,
+        tasks: filteredTasks,
+    };
+}

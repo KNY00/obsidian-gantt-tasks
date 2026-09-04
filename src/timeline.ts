@@ -1,9 +1,8 @@
-import { decrementDayOffset, getDataviewAPI, incrementDayOffset } from './utils/dataview';
-import { getFilteredTasks, sortTasks } from './utils/filter';
-import { generateGanttMarkdown } from './utils/ui';
-import { getExcludeTasksWithoutInterval, getStartDate } from './utils/normalize';
-import { getStartDateWithOffset } from './utils/date-conversion';
-import { fetchAllTasks } from './utils/tasks';
+import { getDataviewAPI } from './utils/dataview';
+import { fetchAllTasks, resolveTimelineTasks } from './utils/tasks';
+import { renderNavigation } from './interface/components/navigation';
+import { renderTaskList, toggleTaskListVisibility } from './interface/components/taskList';
+import { renderGanttParagraph } from './interface/components/ganttParagraph';
 
 fetchAllTasks().then(async (globalTasks) => {
     const dv = getDataviewAPI();
@@ -11,81 +10,43 @@ fetchAllTasks().then(async (globalTasks) => {
     const container = dv.el('div', '', { cls: 'task-timeline-container' });
     container.style.textAlign = 'center';
 
-    let p: HTMLParagraphElement | null = null;
+    let ganttParagraph: HTMLParagraphElement | null = null;
 
     const renderTimeline = async () => {
-        container.innerHTML = ''; // Clear previous elements on refresh
+        // Clear previous container elements on refresh
+        container.innerHTML = '';
 
-        if (p !== null) p.remove();
+        if (ganttParagraph !== null) {
+            ganttParagraph.remove();
+        }
 
-        // Add Button Group Container with Flex
-        const btnGroup = dv.el('div', '', { container });
-        Object.assign(btnGroup.style, {
-            display: 'flex',
-            marginTop: '10px',
-            marginBottom: '10px',
-            alignItems: 'center',
-            justifyContent: 'center',
-            columnGap: '4px',
+        // 1. Task recovery and resolution
+        const { filterDate, tasks } = resolveTimelineTasks(globalTasks);
+
+        // 2. Navigation bar component
+        let taskListElement: HTMLElement | null = null;
+
+        renderNavigation({
+            currentDate: filterDate,
+            container,
+            onDateChange: renderTimeline,
+            onToggleTasks: () => {
+                if (taskListElement) {
+                    toggleTaskListVisibility(taskListElement);
+                }
+            },
         });
 
-        const prevBtn = dv.el('button', 'Prev', { container: btnGroup });
-        prevBtn.onclick = async () => {
-            decrementDayOffset();
-            prevBtn.setAttribute('disabled', 'true');
-            await renderTimeline();
-        };
-
-        const cd = dv.el('small', ``, { container: btnGroup });
-
-        const nextBtn = dv.el('button', 'Next', { container: btnGroup });
-        nextBtn.onclick = async () => {
-            incrementDayOffset();
-            nextBtn.setAttribute('disabled', 'true');
-            await renderTimeline();
-        };
-
-        const toggleTasksBtn = dv.el('button', 'Toggle Tasks', { container: btnGroup });
-
-        toggleTasksBtn.onclick = async () => {
-            if (ul.style.display === 'none') {
-                ul.style.display = 'block';
-            } else {
-                ul.style.display = 'none';
-            }
-        };
-
-        const filterDate = getStartDateWithOffset(getStartDate());
-
-        cd.innerHTML = filterDate || '';
-
-        const excludeTasksWithoutInterval = getExcludeTasksWithoutInterval();
-        const filteredTasks = getFilteredTasks(
-            globalTasks,
-            filterDate,
-            excludeTasksWithoutInterval
-        );
-
-        sortTasks(filteredTasks);
-
-        const ul = dv.el('ul', '', { cls: 'task-timeline-list', container });
-        ul.style.display = 'none';
-
-        filteredTasks.forEach((task) => {
-            const timePrefix =
-                task.startTime && task.endTime ? `[${task.startTime} - ${task.endTime}] ` : '';
-            const li = dv.el('li', ``, { container: ul });
-            dv.el('small', `${timePrefix}${task.name}`, { container: li });
+        // 3. Task list component
+        taskListElement = renderTaskList({
+            tasks,
+            container,
         });
 
-        const mermaidDefinition = generateGanttMarkdown(filteredTasks);
-
-        let block = '```mermaid\n';
-        block += mermaidDefinition;
-        block += '\n```';
-
-        p = dv.paragraph(block);
-        p.style.margin = '0px';
+        // 4. Gantt mermaid paragraph component
+        ganttParagraph = renderGanttParagraph({
+            tasks,
+        });
     };
 
     await renderTimeline();
