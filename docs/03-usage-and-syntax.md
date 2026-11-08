@@ -5,70 +5,70 @@ description: Understand how to format your Markdown tasks so they appear correct
 
 # Usage & Task Syntax
 
-For the script to successfully generate a Gantt chart, your tasks need to be formatted in a way that it can read. The script looks for specific Markdown task indicators, time intervals, and dates.
+For the script to successfully generate a Gantt chart, your tasks need to follow a specific Markdown structure with recognizable date and time prefixes.
 
 ## 1. Basic Task Format
 
-The script processes standard Markdown tasks. Every task must begin with either an open or checked checkbox:
-*   Uncompleted tasks: `- [ ]`
-*   Completed tasks: `- [x]` (or `- [X]`)
+The script scans your target notes line by line and processes standard Markdown checkboxes:
 
-If a line does not start with one of these exact patterns, the script will ignore it.
+* **Uncompleted tasks:** `- [ ]`
+* **Completed tasks:** `- [x]` or `- [X]`
+
+Indented tasks (subtasks) are supported as long as the trimmed line starts with one of the checkbox patterns above. Any other line (headings, plain bullets, numbered lists) is ignored.
+
+::: info Task Name Length
+To keep the Mermaid Gantt chart readable, task names are automatically truncated to **30 characters** (followed by `...`) on the chart axis, while the full task name remains visible in the toggleable task list (`Toggle Tasks`).
+:::
 
 ## 2. Defining Time Intervals
 
-To place a task accurately on the daily timeline, you need to provide a start and end time.
+To place a task accurately on the daily timeline, provide a start and end time:
 
-*   **Format:** The time must be formatted as `HH:MM-HH:MM` (using a 24-hour clock). 
-*   **Milestones:** If the start time and end time are exactly the same (e.g., `14:00-14:00`), the script will render it as a milestone in the Gantt chart.
+* **Format:** `HH:MM-HH:MM` in 24-hour format (single-digit hours/minutes like `8:05` are automatically normalized to `08:05`).
+* **Default Prefix:** By default, the script looks for the `⛏️` emoji followed by a space before the time interval. You can customize this via the `intervalPrefix` option.
+* **Milestones:** If the start time and end time are identical (e.g., `⛏️ 14:00-14:00`), the task is rendered as a diamond **milestone** on the Gantt chart.
 
-By default, the script looks for an interval emoji (an axe 🪓 by default) directly in the task text to define the interval. You can also configure an `intervalPrefix` in the settings to customize the text or emoji used to find the interval.
-
-> [!important] Handling Tasks Without Intervals
-> If no time interval is provided, the plugin will assign a default time at the start of the day *only if* the `excludeTasksWithoutInterval` setting (or the corresponding Obsidian Property) is set to `false`. If this is set to `true`, any tasks without a valid time interval will be ignored entirely.
+::: warning Handling Tasks Without Intervals
+By default (`excludeTasksWithoutInterval: true`), tasks without a valid `HH:MM-HH:MM` interval are hidden. If you set `excludeTasksWithoutInterval` to `false` (via `dv.view` input or the `exclude_tasks_without_interval: "false"` frontmatter property), tasks without an interval will be rendered as a milestone at `08:00` on their target date.
+:::
 
 ```markdown
-// !Example of an task with an invalid time interval
-- [ ] Team meeting 09:00-10:30
-// * Example using the default prefix (🪓)
-- [ ] Read documentation 🪓 11:00-11:30
+// ❌ Missing the interval prefix — interval will not be detected
+- [ ] Team meeting 09:00-10:30 ⏳ 2026-08-25
+
+// ✅ Valid task using the default interval prefix (⛏️)
+- [ ] Read documentation ⛏️ 11:00-11:30 ⏳ 2026-08-25
 ```
 
 ## 3. Assigning Dates
 
-The script needs to know *which day* the task belongs to. It looks for dates in the strict `YYYY-MM-DD` format.
+The script requires a valid calendar date in `YYYY-MM-DD` format to know which day a task belongs to. By default, it uses the standard **Obsidian Tasks** plugin emojis:
 
-You associate dates with tasks using prefixes. By default, the script uses the specific delimiters provided by the Obsidian Tasks plugin, but you can also configure them if you have modified your Tasks plugin behavior (see the [Configuration](./04-configuration.md) section). The script tracks three main types of dates:
+* **Scheduled Date (`scheduledPrefix`):** `⏳` (e.g., `⏳ 2026-08-25`)
+* **Due Date (`duePrefix`):** `📅` (e.g., `📅 2026-08-25`)
+* **Completion Date (`completionPrefix`):** `✅` (e.g., `✅ 2026-08-25`)
 
-* **Scheduled Date** (`scheduledPrefix`): Uses the Obsidian Tasks plugin default prefix ⏳
-* **Due Date** (`duePrefix`): Uses the Obsidian Tasks plugin default prefix 📅
-* **Completion Date** (`completionPrefix`): Uses the Obsidian Tasks plugin default prefix ✅
-
-If a task has a valid Completion Date, the script will automatically mark its status as `done` on the chart. Otherwise, it remains `active`.
+If a task has a valid **Completion Date**, its Gantt bar status is automatically set to `done`; otherwise, it is displayed as `active`.
 
 ```markdown
-// Examples of tasks using Obsidian Tasks plugin date prefixes
-- [ ] Prepare project pitch 🪓 09:00-10:00 ⏳ 2026-08-25
-- [ ] Submit final budget 🪓 14:00-14:00 📅 2026-08-25
-- [x] Client review meeting 🪓 11:00-12:00 ✅ 2026-08-25
+// Active scheduled task
+- [ ] Prepare project pitch ⛏️ 09:00-10:00 ⏳ 2026-08-25
+
+// Milestone due at a specific time
+- [ ] Submit final budget ⛏️ 14:00-14:00 📅 2026-08-25
+
+// Completed task (rendered as 'done')
+- [x] Client review meeting ⛏️ 11:00-12:00 📅 2026-08-25 ✅ 2026-08-25
 ```
 
 ## 4. Date Priority Logic
 
-What happens if a task has multiple dates (e.g., it was scheduled for Tuesday, but completed on Wednesday)?
+If a single task contains multiple dates (for example, it was scheduled for Tuesday, due on Wednesday, and completed on Thursday), the script resolves a single display date using the following strict priority order (from highest to lowest):
 
-The script uses a strict priority system to determine which date to use for the timeline display. It checks the dates in the following order (from highest to lowest priority):
-
-1. **Completion Date:** If this is present, it is always used first.
-
-
-2. **Due Date:** Used if no completion date is found.
-
-
-3. **Scheduled Date:** Used if neither completion nor due dates are found.
-
-
-4. **File Name (Fallback):** If no dates are found in the task text, and the `fallbackToFileDate` setting is enabled, the script will try to extract a `YYYY-MM-DD` date from the name of the Markdown file itself.
+1. **Completion Date (`✅`)** — Always takes precedence if present.
+2. **Due Date (`📅`)** — Used if no completion date is present.
+3. **Scheduled Date (`⏳`)** — Used if neither completion nor due date is present.
+4. **File Name Date (Fallback)** — If the task has no inline dates and `fallbackToFileDate` is enabled (`true` by default), the script extracts the `YYYY-MM-DD` date from the note's filename (e.g., `Journal/2026-08-25.md`).
 
 ```markdown
 // Example 1: Has both Scheduled and Due dates (Due wins, placed on 2026-08-26)
