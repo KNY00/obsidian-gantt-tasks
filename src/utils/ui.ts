@@ -26,7 +26,8 @@ export function buildTask(
     const startTime = startingTime;
     const endTime = endingTime;
 
-    const status = completionDate !== null ? 'done' : 'active';
+    const isChecked = /^-\s*\[[xX]\]/.test(blockLine.trim());
+    const status = completionDate !== null || isChecked ? 'done' : 'active';
 
     let name = blockLine;
 
@@ -39,8 +40,10 @@ export function buildTask(
 
     for (const item of prefixes) {
         if (item.val) {
-            const fullPattern = `${item.prefix} ${item.val}`;
-            name = name.replace(fullPattern, '');
+            // Escape special regex characters in prefix and match 1 or more whitespace characters
+            const escapedPrefix = item.prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const pattern = new RegExp(`${escapedPrefix}\\s+${item.val}`, 'g');
+            name = name.replace(pattern, '');
         }
     }
 
