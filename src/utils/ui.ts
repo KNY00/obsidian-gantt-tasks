@@ -72,6 +72,14 @@ export function buildTask(
     };
 }
 
+const sanitizeForMermaid = (text: string): string => {
+    return text
+        .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2') // [[Link|Alias]] -> Alias
+        .replace(/\[\[([^\]]+)\]\]/g, '$1') // [[Link]] -> Link
+        .replace(/[:;#]/g, ' -') // Replace reserved Mermaid chars
+        .trim();
+};
+
 export function generateGanttMarkdown(tasks: TaskItem[], title: string = '📅 Plan'): string {
     // `title ${title}`,
     const ganttRows: string[] = [
@@ -104,9 +112,11 @@ export function generateGanttMarkdown(tasks: TaskItem[], title: string = '📅 P
         const start = task.startTime ? `${chosenDate} ${task.startTime}` : `${chosenDate} 08:00`;
         const end = task.endTime ? `${chosenDate} ${task.endTime}` : `${chosenDate} 08:00`;
 
+        const titleSanitized = sanitizeForMermaid(task.name);
+
         // Example rows: Task Name :done, t1, 2026-08-23 08:30, 2026-08-23 09:00
         ganttRows.push(
-            `    ${task.name.slice(0, 30)}${task.name.length > 30 ? '...' : ''} ${statusTag}${taskId}, ${start}, ${end}`
+            `    ${titleSanitized.slice(0, 30)}${titleSanitized.length > 30 ? '...' : ''} ${statusTag}${taskId}, ${start}, ${end}`
         );
     });
 
